@@ -7,6 +7,8 @@ from sklearn.impute import SimpleImputer
 import joblib
 import shap
 import os
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, roc_curve, auc
 
 # 1. Load the ORIGINAL DATASET (CSV)
 df = pd.read_csv("data/heart_statlog_cleveland_hungary_final.csv")
@@ -68,3 +70,54 @@ print("Feature names saved at: models/feature_names.pkl")
 
 
 print("\nTraining completed successfully!")
+
+# ... existing code ...
+
+# 11. Generate Performance Visualizations
+print("\nGenerating performance plots...")
+os.makedirs("plots", exist_ok=True)
+
+# --- Plot A: Confusion Matrix ---
+y_pred = (y_pred_proba > 0.5).astype(int)
+cm = confusion_matrix(y_test, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Normal", "Heart Disease"])
+
+plt.figure(figsize=(8, 6))
+disp.plot(cmap=plt.cm.Blues)
+plt.title("Confusion Matrix: Cardiac Risk Model")
+plt.savefig("plots/confusion_matrix.png")
+plt.close()
+print("Saved: plots/confusion_matrix.png")
+
+# --- Plot B: ROC Curve ---
+fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
+roc_auc = auc(fpr, tpr)
+
+plt.figure(figsize=(8, 6))
+plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (area = {roc_auc:.2f})')
+plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC)')
+plt.legend(loc="lower right")
+plt.savefig("plots/roc_curve.png")
+plt.close()
+print("Saved: plots/roc_curve.png")
+
+# --- Plot C: Global Feature Importance ---
+# Get feature importances from the Random Forest
+importances = model.feature_importances_
+indices = np.argsort(importances)[::-1]
+sorted_features = [X.columns[i] for i in indices]
+sorted_importances = importances[indices]
+
+plt.figure(figsize=(10, 6))
+plt.barh(range(len(indices)), sorted_importances[::-1], align='center')
+plt.yticks(range(len(indices)), sorted_features[::-1])
+plt.xlabel('Relative Importance')
+plt.title('Global Feature Importance (Random Forest)')
+plt.savefig("plots/feature_importance.png")
+plt.close()
+print("Saved: plots/feature_importance.png")

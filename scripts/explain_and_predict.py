@@ -1,4 +1,5 @@
-import os, sys  
+import os, sys
+import matplotlib.pyplot as plt
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT_DIR)
 
@@ -252,6 +253,141 @@ def predict_from_dict(user_dict):
         ],
         "clinical_summary": clinical_summary
     }
+
+    try:
+        # We need to construct a robust Explanation object for plotting
+        # explainer.expected_value might be a list (class 0, class 1) or scalar
+        base_val = explainer.expected_value
+        if isinstance(base_val, list) or isinstance(base_val, np.ndarray):
+            base_val = base_val[1] # Class 1 (Disease) baseline
+
+        # Create the explanation object specifically for this single patient
+        explanation = shap.Explanation(
+            values=shap_values,           # The calculated SHAP values for this person
+            base_values=base_val,         # The average risk (baseline)
+            data=X_input.iloc[0].values,  # The patient's actual feature values
+            feature_names=feature_names   # The list of column names
+        )
+
+        plt.figure(figsize=(10, 6))
+        # Create the plot (show=False allows us to save it)
+        shap.plots.waterfall(explanation, show=False, max_display=10)
+        
+        # Save the plot
+        save_path = "patient_risk_explanation.png"
+        plt.tight_layout()
+        plt.savefig(save_path, bbox_inches='tight', dpi=150)
+        plt.close()
+        print(f"\n[INFO] Visual explanation saved to: {os.path.abspath(save_path)}")
+        
+    except Exception as e:
+        print(f"[WARNING] Could not generate SHAP plot: {e}")
+
+
+    # ---------------------------------------------------------
+    # VISUALIZATION 2: Clinical Radar Chart (Patient vs. Average Healthy)
+    # ---------------------------------------------------------
+    try:
+        # 1. Select numeric features for the chart
+        radar_feats = ["age", "resting bp s", "cholesterol", "max heart rate", "oldpeak"]
+        
+        # 2. Get averages for "Healthy" (target=0) from the master dataset
+        # (df_master is already loaded globally in your script)
+        healthy_means = df_master[df_master["target"] == 0][radar_feats].mean()
+        
+        # 3. Normalize data (0-1 scaling) so different units fit on one chart
+        # We use the dataset max values to scale
+        max_vals = df_master[radar_feats].max()
+        
+        patient_vals_norm = []
+        healthy_vals_norm = []
+        
+        for f in radar_feats:
+            val = X_input[f].iloc[0]
+            # Clip to max to avoid drawing outside the circle
+            norm_val = min(val / max_vals[f], 1.0) 
+            patient_vals_norm.append(norm_val)
+            healthy_vals_norm.append(healthy_means[f] / max_vals[f])
+            
+        # 4. Prepare plot data (close the loop for radar chart)
+        angles = np.linspace(0, 2 * np.pi, len(radar_feats), endpoint=False).tolist()
+        patient_vals_norm += [patient_vals_norm[0]]
+        healthy_vals_norm += [healthy_vals_norm[0]]
+        angles += [angles[0]]
+        
+        # 5. Plot
+        fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+        
+        # Draw Healthy Baseline
+        ax.plot(angles, healthy_vals_norm, color='green', linewidth=2, linestyle='dashed', label='Avg Healthy Profile')
+        ax.fill(angles, healthy_vals_norm, color='green', alpha=0.1)
+        
+        # Draw Patient
+        ax.plot(angles, patient_vals_norm, color='red', linewidth=2, label='Patient')
+        ax.fill(angles, patient_vals_norm, color='red', alpha=0.25)
+        
+        # Labels
+        ax.set_xticks(angles[:-1])
+        ax.set_xticklabels(radar_feats)
+        ax.set_yticklabels([]) # Hide radial numbers
+        ax.set_title("Patient Vitals vs. Healthy Baseline", y=1.1)
+        ax.legend(loc='upper right', bbox_to_anchor=(1.1, 1.1))
+        
+        plt.savefig("patient_radar_chart.png", bbox_inches='tight', dpi=150)
+        plt.close()
+        print(f"[INFO] Radar chart saved to: {os.path.abspath('patient_radar_chart.png')}")
+
+    except Exception as e:
+        print(f"[WARNING] Could not generate Radar Chart: {e}")
+
+    # [INSERT THIS BLOCK AFTER THE RADAR CHART]
+    # ---------------------------------------------------------
+    # VISUALIZATION 3: Risk Gauge Chart
+    # ---------------------------------------------------------
+    try:
+        # Simple Donut Chart acting as a Gauge
+        risk_score = proba # This is your calculated probability (0.0 to 1.0)
+        
+        # Colors: Green (Low), Yellow (Med), Red (High)
+        colors = ['#4CAF50', '#FFC107', '#F44336']
+        
+        plt.figure(figsize=(6, 4))
+        
+        # Create a half-donut
+        # Sizes correspond to Low (0-0.33), Medium (0.33-0.66), High (0.66-1.0)
+        plt.pie([1, 1, 1], colors=colors, startangle=0, counterclock=False, 
+                wedgeprops=dict(width=0.4, edgecolor='w'), labels=["High", "Med", "Low"], 
+                labeldistance=1.1, textprops={'fontsize': 10})
+        
+        # Draw a circle in the center to make it a donut (and hide the bottom half)
+        # Actually, standard pie chart is 360. To make a gauge, we mask the bottom.
+        # Simpler approach: Just a horizontal bar with a marker.
+        
+        # --- Simpler Linear Gauge Approach ---
+        plt.clf() # clear previous attempts
+        fig, ax = plt.subplots(figsize=(6, 2))
+        
+        # Draw the gradient bar
+        gradient = np.linspace(0, 1, 256)
+        gradient = np.vstack((gradient, gradient))
+        ax.imshow(gradient, aspect='auto', cmap=plt.get_cmap('RdYlGn_r'), extent=[0, 1, 0, 1])
+        
+        # Place the marker for patient
+        ax.plot([risk_score, risk_score], [0, 1], color='black', linewidth=4)
+        ax.text(risk_score, 1.2, f"{risk_score*100:.1f}%", horizontalalignment='center', fontsize=12, fontweight='bold')
+        
+        # Labels
+        ax.set_yticks([])
+        ax.set_xticks([0, 0.33, 0.66, 1])
+        ax.set_xticklabels(["Low", "Medium", "High", "Critical"])
+        ax.set_title("Cardiac Risk Probability", fontsize=12)
+        
+        plt.savefig("patient_risk_gauge.png", bbox_inches='tight', dpi=150)
+        plt.close()
+        print(f"[INFO] Risk Gauge saved to: {os.path.abspath('patient_risk_gauge.png')}")
+
+    except Exception as e:
+        print(f"[WARNING] Could not generate Gauge Chart: {e}")
 
     return result
 
