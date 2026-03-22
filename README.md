@@ -20,7 +20,7 @@ A machine learning project that predicts cardiac risk using clinical data, provi
 
 1. **Clone the Repository**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Shanmuk2309/Cardiac-LLM.git
    cd Cardiac-LLM
    ```
 
