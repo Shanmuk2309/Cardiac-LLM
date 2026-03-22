@@ -14,13 +14,14 @@ import textwrap
 # -----------------------------
 # Load model artifacts
 # -----------------------------
-MODEL_PATH = "models/heart_model.pkl"
-EXPLAINER_PATH = "models/shap_explainer.pkl"
-FEATURES_PATH = "models/feature_names.pkl"
-CSV_PATH = "data/heart_statlog_cleveland_hungary_final.csv"  # used only to compute medians for imputing
+MODEL_PATH = os.path.join(ROOT_DIR, "models/heart_model.pkl")
+BACKGROUND_PATH = os.path.join(ROOT_DIR, "models/shap_background.pkl")
+FEATURES_PATH = os.path.join(ROOT_DIR, "models/feature_names.pkl")
+CSV_PATH = os.path.join(ROOT_DIR, "data/heart_statlog_cleveland_hungary_final.csv")  # used only to compute medians for imputing
 
 model = joblib.load(MODEL_PATH)
-explainer = joblib.load(EXPLAINER_PATH)
+background = joblib.load(BACKGROUND_PATH)
+explainer = shap.TreeExplainer(model, data=background)
 feature_names = joblib.load(FEATURES_PATH)  # list of 11 feature names in training order
 
 # -----------------------------
@@ -29,7 +30,7 @@ feature_names = joblib.load(FEATURES_PATH)  # list of 11 feature names in traini
 df_master = pd.read_csv(CSV_PATH)
 df_master = df_master.replace("?", np.nan)
 # coerce numeric where possible (safe as training did)
-df_master = df_master.apply(pd.to_numeric, errors="ignore")
+df_master = df_master.apply(pd.to_numeric, errors="coerce")
 
 # For imputing user inputs, compute median per feature (ignores NaN)
 medians = df_master[feature_names].median()

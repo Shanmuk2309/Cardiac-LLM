@@ -1,1 +1,50 @@
+# Environment and secrets
 .env
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Logs
+*.log
+
+# Generated models and plots (uncomment if you want to regenerate them)
+models/*.pkl
+#plots/*.png
+
+# Ignore dynamic patient-specific plots generated in the root directory
+/*.png
+
+# Ensure the evaluation plots in the plots folder are STILL tracked
+!plots/*.png
+
+# Temporary files
+*.tmp
+*.temp

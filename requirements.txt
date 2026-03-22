@@ -3,6 +3,6 @@ pandas
 numpy
 scikit-learn
 shap
-xgboost
+joblib
 matplotlib
-google-generative-ai
+openai

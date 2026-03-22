@@ -1,17 +1,17 @@
 import os
 from dotenv import load_dotenv
-import google.generativeai as genai
+from openai import OpenAI
 
 # Load .env file
 load_dotenv()
 
-API_KEY = os.getenv("GEMINI_API_KEY")
+API_KEY = os.getenv("OPENAI_API_KEY")
 
 if not API_KEY:
-    raise ValueError("GEMINI_API_KEY missing! Check your .env file.")
+    raise ValueError("OPENAI_API_KEY missing! Check your .env file.")
 
-# Configure the library
-genai.configure(api_key=API_KEY)
+# Configure the client
+client = OpenAI(api_key=API_KEY)
 
 def generate_cardiac_report(result):
     # Build prompt
@@ -40,11 +40,12 @@ Top SHAP Drivers:
         prompt += f"\n - {d['feature']}: value={d['value']}, shap={d['shap_value']}"
 
     try:
-        # --- UPDATE: Using the available model from your list ---
-        model = genai.GenerativeModel("gemini-2.5-flash-preview-09-2025")
-        
-        response = model.generate_content(prompt)
-        return response.text
+        # --- UPDATE: Using OpenAI instead of Gemini ---
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return response.choices[0].message.content
         
     except Exception as e:
         return f"Error generating report: {str(e)}"
