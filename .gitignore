@@ -41,6 +41,9 @@ models/*.pkl
 
 # Ignore dynamic patient-specific plots generated in the root directory
 /*.png
+patient_radar_chart.png
+patient_risk_explanation.png
+patient_risk_guage.png
 
 # Ensure the evaluation plots in the plots folder are STILL tracked
 !plots/*.png
