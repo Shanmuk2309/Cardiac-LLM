@@ -49,7 +49,7 @@ A machine learning project that predicts cardiac risk using clinical data, provi
 ## Usage
 
 ### Training the Model
-Run the training script to build the XGBoost model:
+Run the training script to build the Random Forest model:
 ```bash
 python scripts/train_model.py
 ```
@@ -133,5 +133,5 @@ The project uses the "Heart Disease" dataset from the Cleveland and Hungarian da
 ## Acknowledgments
 
 - Dataset: UCI Machine Learning Repository
-- Libraries: XGBoost, SHAP, OpenAI
+- Libraries: Random Forest, SHAP, OpenAI
 - Inspiration: Explainable AI in healthcare
